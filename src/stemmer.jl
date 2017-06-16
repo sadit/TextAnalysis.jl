@@ -75,11 +75,12 @@ function stem(stemmer::Stemmer, word::SubString{Compat.String})
     sres = ccall((:sb_stemmer_stem, _libsb),
                 Ptr{UInt8},
                 (Ptr{UInt8}, Ptr{UInt8}, Cint),
-                stemmer.cptr, pointer(word.string.data)+word.offset, word.endof)
+                stemmer.cptr, pointer(word.string)+word.offset, word.endof)
     (C_NULL == sres) && error("error in stemming")
-    slen = ccall((:sb_stemmer_length, _libsb), Cint, (Ptr{Void},), stemmer.cptr)
-    bytes = pointer_to_array(sres, @compat(Int(slen)), false)
-    bytestring(bytes)
+    unsafe_string(sres)
+    #slen = ccall((:sb_stemmer_length, _libsb), Cint, (Ptr{Void},), stemmer.cptr)
+    #bytes = pointer_to_array(sres, @compat(Int(slen)), false)
+    #bytestring(bytes)
 end
 
 function stem_all{S <: Language}(stemmer::Stemmer, lang::Type{S}, sentence::AbstractString)
@@ -90,7 +91,8 @@ end
 
 function stem(stemmer::Stemmer, words::Array)
     const l::Int = length(words)
-    ret = Array(AbstractString, l)
+    # ret = Array(AbstractString, l)
+    ret = Vector{String}(l)
     for idx in 1:l
         ret[idx] = stem(stemmer, words[idx])
     end

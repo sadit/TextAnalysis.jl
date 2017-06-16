@@ -278,6 +278,13 @@ function prepare!(crps::Corpus, flags::UInt32; skip_patterns = Set{AbstractStrin
 
     ((flags & stem_words) > 0) && stem!(crps)
     ((flags & tag_part_of_speech) > 0) && tag_pos!(crps)
+
+    
+    if ((flags & strip_whitespace) > 0)
+        for doc in crps
+            doc.text = replace(doc.text, r"\s+", " ")
+        end
+    end
     nothing
 end
 
@@ -291,41 +298,14 @@ function prepare!(d::AbstractDocument, flags::UInt32; skip_patterns = Set{Abstra
 
     ((flags & stem_words) > 0) && stem!(d)
     ((flags & tag_part_of_speech) > 0) && tag_pos!(d)
+    if ((flags & strip_whitespace) > 0)
+        d.text = replace(d.text, r"\s+", " ")
+    end
     nothing
 end
 
 function remove_patterns(s::AbstractString, rex::Regex)
-    iob = IOBuffer()
-    ibegin = 1
-    for m in matchall(rex, s)
-        len = m.offset-ibegin+1
-        if len > 0
-            Base.write_sub(iob, s.data, ibegin, len)
-            write(iob, ' ')
-        end
-        ibegin = m.endof+m.offset+1
-    end
-    len = length(s.data) - ibegin + 1
-    (len > 0) && Base.write_sub(iob, s.data, ibegin, len)
-    takebuf_string(iob)
-end
-
-function remove_patterns{T <: Compat.String}(s::SubString{T}, rex::Regex)
-    iob = IOBuffer()
-    ioffset = s.offset
-    data = s.string.data
-    ibegin = 1
-    for m in matchall(rex, s)
-        len = m.offset-ibegin+1
-        if len > 0
-            Base.write_sub(iob, data, ibegin+ioffset, len)
-            write(iob, ' ')
-        end
-        ibegin = m.endof+m.offset+1
-    end
-    len = s.endof - ibegin + 1
-    (len > 0) && Base.write_sub(iob, data, ibegin+ioffset, len)
-    takebuf_string(iob)
+    replace(s, rex, " ")
 end
 
 remove_patterns!(d::FileDocument, rex::Regex) = error("FileDocument cannot be modified")
@@ -377,11 +357,12 @@ function _combine_regex{T <: AbstractString}(regex_parts::Set{T})
     for part in regex_parts
         write(iob, "|($part)")
     end
-    mk_regex(takebuf_string(iob))
+    #mk_regex(String(take!(iob)) * "\\s?")
+    mk_regex(String(take!(iob)))
 end
 
 function _build_regex_patterns{T <: AbstractString}(lang, flags::UInt32, patterns::Set{T}, words::Set{T})
-    ((flags & strip_whitespace) > 0) && push!(patterns, "\\s+")
+    # ((flags & strip_whitespace) > 0) && push!(patterns, "\\s+")
     if (flags & strip_non_letters) > 0
         push!(patterns, "[^a-zA-Z\\s]")
     else
@@ -407,13 +388,14 @@ function _build_words_pattern{T <: AbstractString}(words::Vector{T})
     isempty(words) && return ""
 
     iob = IOBuffer()
-    write(iob, "\\b(")
+    write(iob, "\\s*\\b(")
     write(iob, words[1])
     l = length(words)
     for idx in 2:l
         write(iob, '|')
         write(iob, words[idx])
     end
-    write(iob, ")\\b")
-    takebuf_string(iob)
+    write(iob, ")\\b\\s*")
+    # takebuf_string(iob)
+    String(take!(iob))
 end
