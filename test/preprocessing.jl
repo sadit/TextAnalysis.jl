@@ -28,7 +28,7 @@ module TestPreprocessing
     # Need to only remove words at word boundaries
     doc = Document("this is sample text")
     remove_words!(doc, ["sample"])
-    @assert isequal(doc.text, "this is   text")
+    @assert isequal(doc.text, "this is text")
 
     doc = Document("this is sample text")
     prepare!(doc, strip_articles)
@@ -80,5 +80,5 @@ module TestPreprocessing
         """
     )
     remove_html_tags!(d)
-    @assert "Hello world" == strip(d.text)
+    @assert "Hello  world" == strip(d.text)
 end
