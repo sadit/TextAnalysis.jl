@@ -57,8 +57,10 @@ module TestDocument
 
     d = Document("To be or not to be...")
     @assert isa(d, StringDocument)
-    d = Document("/usr/share/dict/words")
-    @assert isa(d, FileDocument)
+    if isfile("/usr/share/dict/words")
+        d = Document("/usr/share/dict/words")
+        @assert isa(d, FileDocument)
+    end
     d = Document(["To", "be", "or", "not", "to", "be..."])
     @assert isa(d, TokenDocument)
     ng = Dict{Compat.UTF8String,Int}()
